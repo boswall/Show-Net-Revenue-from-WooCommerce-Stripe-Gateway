@@ -1,9 +1,9 @@
 <?php
 /**
 * Plugin Name:       Show Net Revenue from WooCommerce Stripe Gateway
-* Plugin URI:        https://github.com/boswall/show-woostripe-revenue
+* Plugin URI:        https://github.com/boswall/Show-Net-Revenue-from-WooCommerce-Stripe-Gateway
 * Description:       Shows the Stripe fee and net revenue for Woocommerce order listings in the admin area.
-* Version:           1.0.0
+* Version:           1.1.0
 * Author:            Matt Rose
 * Author URI:        http://glaikit.co.uk/
 * License:           GPL-2.0+
