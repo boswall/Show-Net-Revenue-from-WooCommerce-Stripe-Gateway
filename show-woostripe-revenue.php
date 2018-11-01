@@ -17,6 +17,13 @@ if ( ! defined( 'WPINC' ) ) {
   die;
 }
 
+// Define our meta keys
+define( 'SHOWWOOSTRIPE_LEGACY_META_NAME_FEE', 'Stripe Fee' );
+define( 'SHOWWOOSTRIPE_LEGACY_META_NAME_NET', 'Net Revenue From Stripe' );
+define( 'SHOWWOOSTRIPE_META_NAME_FEE', '_stripe_fee' );
+define( 'SHOWWOOSTRIPE_META_NAME_NET', '_stripe_net' );
+define( 'SHOWWOOSTRIPE_META_NAME_STRIPE_CURRENCY', '_stripe_currency' );
+
 // Fiters and Actions needed to make everything work.
 add_action( 'plugins_loaded', 'show_woostripe_revenue_load_plugin_textdomain' );
 add_action( 'woocommerce_admin_order_totals_after_refunded', 'show_woostripe_revenue_admin_order_totals_after_refunded', 10, 1 );
@@ -37,7 +44,7 @@ function show_woostripe_revenue_load_plugin_textdomain() {
 * @param  int $order_id
 */
 function show_woostripe_revenue_admin_order_totals_after_refunded( $order_id ) {
-  if ( $fees = get_post_meta( get_the_ID(), 'Stripe Fee' )[0] ) {
+  if ( $fees = get_post_meta( get_the_ID(), SHOWWOOSTRIPE_LEGACY_META_NAME_FEE )[0] ) {
     ?>
 
     <tr>
@@ -49,7 +56,7 @@ function show_woostripe_revenue_admin_order_totals_after_refunded( $order_id ) {
   <?php
   }
 
-  if ( $net = get_post_meta( get_the_ID(), 'Net Revenue From Stripe' )[0] ) {
+  if ( $net = get_post_meta( get_the_ID(), SHOWWOOSTRIPE_LEGACY_META_NAME_NET )[0] ) {
     ?>
 
     <tr>
@@ -79,18 +86,28 @@ function show_woostripe_revenue_shop_order_columns( $columns ) {
 */
 function show_woostripe_revenue_render_shop_order_columns( $column ) {
   if ( $column == 'order_stripefees' ) {
-    if ( ! $fees = get_post_meta( get_the_ID(), 'Stripe Fee' )[0] ) {
-      echo '<span class="na">–</span>';
+    if ( $fees = get_post_meta( get_the_ID(), SHOWWOOSTRIPE_META_NAME_FEE, true ) ) {
+      echo wc_price( $fees );
       return;
     }
-    echo wc_price( $fees );
+    else if ( $fees = get_post_meta( get_the_ID(), SHOWWOOSTRIPE_LEGACY_META_NAME_FEE, true ) ) {
+      echo wc_price( $fees );
+      return;
+    }
+    echo '<span class="na">–</span>';
+    return;
   }
   if ( $column == 'order_stripenet' ) {
-    if ( ! $net = get_post_meta( get_the_ID(), 'Net Revenue From Stripe' )[0] ) {
-      echo '<span class="na">–</span>';
+    if ( $net = get_post_meta( get_the_ID(), SHOWWOOSTRIPE_META_NAME_NET, true ) ) {
+      echo wc_price( $net );
       return;
     }
-    echo wc_price( $net );
+    else if ( $net = get_post_meta( get_the_ID(), SHOWWOOSTRIPE_LEGACY_META_NAME_NET, true ) ) {
+      echo wc_price( $net );
+      return;
+    }
+    echo '<span class="na">–</span>';
+    return;
   }
 }
 
@@ -115,15 +132,45 @@ function show_woostripe_revenue_request_query( $vars ) {
   if ( in_array( $typenow, wc_get_order_types( 'order-meta-boxes' ) ) ) {
     if ( isset( $vars['orderby'] ) ) {
       if ( 'order_stripefees' == $vars['orderby'] ) {
+        // $vars = array_merge( $vars, array(
+        //   'meta_key'  => SHOWWOOSTRIPE_LEGACY_META_NAME_FEE,
+        //   'orderby'   => 'meta_value_num',
+        // ) );
         $vars = array_merge( $vars, array(
-          'meta_key'  => 'Stripe Fee',
-          'orderby'   => 'meta_value_num',
+          'meta_query'  => array(
+            'relation' => 'OR',
+            'stripe_old_clause' => array(
+              'key' => SHOWWOOSTRIPE_LEGACY_META_NAME_FEE,
+              'compare' => 'EXISTS',
+            ),
+            'stripe_new_clause' => array(
+              'key' => SHOWWOOSTRIPE_META_NAME_FEE,
+              'compare' => 'EXISTS',
+            ),
+          ),
+          // Hack to get the ordering in roughly the right place
+          'orderby' => 'order_total',
         ) );
       }
       if ( 'order_stripenet' == $vars['orderby'] ) {
+        // $vars = array_merge( $vars, array(
+        //   'meta_key'  => SHOWWOOSTRIPE_LEGACY_META_NAME_NET,
+        //   'orderby'   => 'meta_value_num',
+        // ) );
         $vars = array_merge( $vars, array(
-          'meta_key'  => 'Net Revenue From Stripe',
-          'orderby'   => 'meta_value_num',
+          'meta_query'  => array(
+            'relation' => 'OR',
+            'stripe_old_clause' => array(
+              'key' => SHOWWOOSTRIPE_LEGACY_META_NAME_NET,
+              'compare' => 'EXISTS',
+            ),
+            'stripe_new_clause' => array(
+              'key' => SHOWWOOSTRIPE_META_NAME_NET,
+              'compare' => 'EXISTS',
+            ),
+          ),
+          // Hack to get the ordering in roughly the right place
+          'orderby' => 'order_total',
         ) );
       }
     }
